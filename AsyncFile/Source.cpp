@@ -19,26 +19,47 @@ void FileCheckSum(std::string file_path,
     }
     else
     {
-        // Read file to string stream
-        std::stringstream sstream;
-        sstream << file_input.rdbuf();
+        // Read file to common string stream
+        std::stringstream common_stream;
+        common_stream << file_input.rdbuf();
+        std::string common_string(common_stream.str());
         file_input.close();
 
+        std::string formatted_string;
         // Add file check sum to string stream
-        std::string string(sstream.str());
-        for (int iter : string)
-        {
-            sum += iter;
-        }
-        sstream << "[" << sum << "]";
+        int pos = 0;
+        do {
+            std::stringstream local_stream;
+            int new_pos = common_string.find("\n", pos + 1);
+            std::string buf_string;
+            if (new_pos != -1)
+            {
+                buf_string = common_string.substr(pos, new_pos - pos);
+            }
+            else
+            {
+                buf_string = common_string.substr(pos);
+            }
 
-        // Add process duration to string stream
-        auto dur_time = std::chrono::high_resolution_clock::now() - start;
-        sstream << " " << std::chrono::duration_cast<std::chrono::microseconds>(dur_time).count() << " microseconds";
+            sum = 0;
+            for (int iter : buf_string)
+            {
+                sum += iter;
+            }
+            local_stream << buf_string << "[" << sum << "] ";
+
+            // Add process duration to string stream
+            auto dur_time = std::chrono::high_resolution_clock::now() - start;
+            local_stream << std::chrono::duration_cast<std::chrono::microseconds>(dur_time).count() << " microseconds";
+
+            pos = new_pos;
+            formatted_string += local_stream.str();
+        } while (common_string.find("\n", pos) != -1);
+
 
         // Create and fill output file
         std::ofstream file_output(file_path);
-        file_output << sstream.rdbuf();
+        file_output << formatted_string;
         file_output.close();
     }
 }
